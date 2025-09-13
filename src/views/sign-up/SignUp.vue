@@ -27,7 +27,9 @@
           />
         </div>
         <div class="text-center">
-          <button class="btn btn-primary" :disabled="!isPasswordTheSame">Sign Up</button>
+          <button class="btn btn-primary" :disabled="!isPasswordTheSame || apiProgress">
+            Sign Up
+          </button>
         </div>
       </div>
     </form>
@@ -37,6 +39,7 @@
 <script setup>
 import { ref, computed, reactive } from 'vue'
 import axios from 'axios'
+
 const formData = reactive({
   username: '',
   email: '',
@@ -44,16 +47,15 @@ const formData = reactive({
   passwordRepeat: '',
 })
 
+const apiProgress = ref(false)
 const isPasswordTheSame = computed(() => {
   if (!formData.password || !formData.passwordRepeat) return false
   return formData.password === formData.passwordRepeat
 })
 
 const onSubmitForm = () => {
-  console.log('a')
+  apiProgress.value = true
   const { passwordRepeat, ...payload } = formData
-  console.log(formData)
-
   if (!formData.username || !formData.email || !formData.password) return
   axios.post('/api/v1/users', payload)
   // fetch('/api/v1/users', {
