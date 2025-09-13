@@ -1,24 +1,37 @@
 <template>
-  <form @submit.prevent="onSubmitForm" action="">
-    <h1>Sign Up</h1>
-    <div>
-      <label for="username">Username</label>
-      <input v-model="formData.username" id="username" />
-    </div>
-    <div>
-      <label for="email">E-mail</label>
-      <input v-model="formData.email" id="email" />
-    </div>
-    <div>
-      <label for="password">Password</label>
-      <input v-model="formData.password" id="password" type="password" />
-    </div>
-    <div>
-      <label for="password-repeat">Password Repeat</label>
-      <input v-model="formData.passwordRepeat" id="password-repeat" type="password" />
-    </div>
-    <button :disabled="!isPasswordTheSame">Sign Up</button>
-  </form>
+  <div class="col-lg-6 offset-lg-3 col-md-8 offset-md-2">
+    <form class="card" @submit.prevent="onSubmitForm" action="">
+      <div class="card-header text-center">
+        <h1>Sign Up</h1>
+      </div>
+      <div class="card-body">
+        <div class="mb-3">
+          <label class="form-label" for="username">Username</label>
+          <input class="form-control" v-model="formData.username" id="username" />
+        </div>
+        <div class="mb-3">
+          <label class="form-label" for="email">E-mail</label>
+          <input class="form-control" v-model="formData.email" id="email" />
+        </div>
+        <div class="mb-3">
+          <label class="form-label" for="password">Password</label>
+          <input class="form-control" v-model="formData.password" id="password" type="password" />
+        </div>
+        <div class="mb-3">
+          <label class="form-label" for="password-repeat">Password Repeat</label>
+          <input
+            class="form-control"
+            v-model="formData.passwordRepeat"
+            id="password-repeat"
+            type="password"
+          />
+        </div>
+        <div class="text-center">
+          <button class="btn btn-primary" :disabled="!isPasswordTheSame">Sign Up</button>
+        </div>
+      </div>
+    </form>
+  </div>
 </template>
 
 <script setup>
@@ -52,3 +65,9 @@ const onSubmitForm = () => {
   // })
 }
 </script>
+
+<style scoped>
+h1 {
+  color: black;
+}
+</style>
