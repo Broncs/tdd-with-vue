@@ -28,11 +28,22 @@
         </div>
         <div class="text-center">
           <button class="btn btn-primary" :disabled="!isPasswordTheSame || apiProgress">
+            <span v-if="apiProgress" class="spinner-border spinner-border-sm" role="status"></span>
             Sign Up
           </button>
         </div>
       </div>
     </form>
+    <template v-if="APIresponse.data && APIresponse.data.message">
+      <div
+        class="alert alert-success"
+        :class="{ 'alert-success': (APIresponse.statusText = 'OK') }"
+        data-testid="response-message"
+        role="alert"
+      >
+        {{ APIresponse.data.message }}
+      </div>
+    </template>
   </div>
 </template>
 
@@ -46,18 +57,27 @@ const formData = reactive({
   password: '',
   passwordRepeat: '',
 })
-
+const APIresponse = ref({})
 const apiProgress = ref(false)
 const isPasswordTheSame = computed(() => {
   if (!formData.password || !formData.passwordRepeat) return false
   return formData.password === formData.passwordRepeat
 })
 
-const onSubmitForm = () => {
+const onSubmitForm = async () => {
   apiProgress.value = true
   const { passwordRepeat, ...payload } = formData
   if (!formData.username || !formData.email || !formData.password) return
-  axios.post('/api/v1/users', payload)
+
+  try {
+    const response = await axios.post('/api/v1/users', payload)
+    if (response.statusText == 'OK') {
+      APIresponse.value = response
+    }
+  } catch (error) {
+    console.log(error)
+  }
+
   // fetch('/api/v1/users', {
   //   method: 'POST',
   //   headers: {

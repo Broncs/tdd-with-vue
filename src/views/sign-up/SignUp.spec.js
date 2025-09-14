@@ -1,10 +1,48 @@
 import { render, screen, waitFor } from '@testing-library/vue'
 import SignUp from './SignUp.vue'
-import { describe, expect } from 'vitest'
+import { afterAll, beforeAll, beforeEach, describe, expect } from 'vitest'
 import userEvent from '@testing-library/user-event'
 import { setupServer } from 'msw/node'
 import { http, HttpResponse } from 'msw'
-import { nextTick } from 'vue'
+
+const setup = async () => {
+  const user = userEvent.setup()
+  const result = render(SignUp)
+  const usernameInput = screen.getByLabelText('Username')
+  const emailInput = screen.getByLabelText('E-mail')
+  const passwordInput = screen.getByLabelText('Password')
+  const passwordRepeatInput = screen.getByLabelText('Password Repeat')
+
+  await user.type(usernameInput, 'user1')
+  await user.type(emailInput, 'teste@gmail.com')
+  await user.type(passwordInput, 'P4ssword')
+  await user.type(passwordRepeatInput, 'P4ssword')
+
+  const button = screen.getByRole('button', { name: 'Sign Up' })
+  return {
+    ...result,
+    user,
+    elements: {
+      button,
+    },
+  }
+}
+let requestBody
+let counter = 0
+const server = setupServer(
+  http.post(window.location.origin + '/api/v1/users', async ({ request }) => {
+    requestBody = await request.json()
+    counter += 1
+    return HttpResponse.json({ message: 'Usuário criado com sucesso' }, { status: 200 })
+  }),
+)
+
+beforeEach(() => {
+  counter = 0
+})
+
+beforeAll(() => server.listen())
+afterAll(() => server.close())
 
 describe('Sign Up', () => {
   it('has Sign Up Header', () => {
@@ -52,44 +90,30 @@ describe('Sign Up', () => {
     expect(screen.getByRole('button', { name: 'Sign Up' })).toBeDisabled()
   })
 
+  it('does not display spinner', () => {
+    render(SignUp)
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+  })
+
   describe('when user sets same value for password inputs', () => {
     it('enables button', async () => {
-      const user = userEvent.setup()
-      render(SignUp)
-      const passwordInput = screen.getByLabelText('Password')
-      const passwordRepeatInput = screen.getByLabelText('Password Repeat')
-      const button = screen.getByRole('button', { name: 'Sign Up' })
+      const {
+        elements: { button },
+      } = await setup()
 
-      await user.type(passwordInput, 'P4ssword')
-      await user.type(passwordRepeatInput, 'P4ssword')
       expect(button).toBeEnabled()
     })
   })
 
   describe('when user submits form', () => {
     it('Sends username, email, password, to the backend', async () => {
-      let requestBody = ''
-      const server = setupServer(
-        http.post(window.location.origin + '/api/v1/users', async ({ request }) => {
-          requestBody = await request.json()
-          return HttpResponse.json({})
-        }),
-      )
-      server.listen()
-      const user = userEvent.setup()
-      render(SignUp)
-      const usernameInput = screen.getByLabelText('Username')
-      const emailInput = screen.getByLabelText('E-mail')
-      const passwordInput = screen.getByLabelText('Password')
-      const passwordRepeatInput = screen.getByLabelText('Password Repeat')
+      const {
+        user,
+        elements: { button },
+      } = await setup()
 
-      await user.type(usernameInput, 'user1')
-      await user.type(emailInput, 'teste@gmail.com')
-      await user.type(passwordInput, 'P4ssword')
-      await user.type(passwordRepeatInput, 'P4ssword')
-
-      const button = screen.getByRole('button', { name: 'Sign Up' })
       await user.click(button)
+
       await waitFor(() => {
         expect(requestBody).toEqual({
           username: 'user1',
@@ -97,40 +121,63 @@ describe('Sign Up', () => {
           password: 'P4ssword',
         })
       })
+    })
 
-      server.close()
+    it.only('should has 200 ok status and there is response body  with a message property.', async () => {
+      let responseMessage = ''
+      server.use(
+        http.post('/api/v1/users', async ({ request }) => {
+          requestBody = await request.json()
+          counter += 1
+          responseMessage = 'Usuário criado com sucesso'
+          return HttpResponse.json({ message: 'Usuário criado com sucesso' }, { status: 200 })
+        }),
+      )
+
+      const {
+        user,
+        elements: { button },
+      } = await setup()
+
+      await user.click(button)
+      await waitFor(() => {
+        expect(requestBody).toEqual({
+          username: 'user1',
+          email: 'teste@gmail.com',
+          password: 'P4ssword',
+        })
+
+        expect(counter).toBe(1)
+        expect(responseMessage).toBe('Usuário criado com sucesso')
+        expect(screen.getByTestId('response-message')).toBeInTheDocument()
+      })
     })
   })
 
   describe('when there is an ongoing api call', () => {
     it('does not allow clicking the button', async () => {
-      let counter = 0
-      const server = setupServer(
-        http.post(window.location.origin + '/api/v1/users', () => {
-          counter += 1
-          return HttpResponse.json({})
-        }),
-      )
-      server.listen()
-      const user = userEvent.setup()
-      render(SignUp)
-      const usernameInput = screen.getByLabelText('Username')
-      const emailInput = screen.getByLabelText('E-mail')
-      const passwordInput = screen.getByLabelText('Password')
-      const passwordRepeatInput = screen.getByLabelText('Password Repeat')
+      const {
+        user,
+        elements: { button },
+      } = await setup()
 
-      await user.type(usernameInput, 'user1')
-      await user.type(emailInput, 'teste@gmail.com')
-      await user.type(passwordInput, 'P4ssword')
-      await user.type(passwordRepeatInput, 'P4ssword')
-
-      const button = screen.getByRole('button', { name: 'Sign Up' })
       await user.click(button)
       await user.click(button)
+
       await waitFor(() => {
         expect(counter).toBe(1)
       })
-      server.close()
+    })
+
+    it('displays spinner', async () => {
+      const {
+        user,
+        elements: { button },
+      } = await setup()
+
+      await user.click(button)
+
+      expect(screen.getByRole('status')).toBeInTheDocument()
     })
   })
 })
